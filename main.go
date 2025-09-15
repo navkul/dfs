@@ -1,37 +1,36 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"time"
 
 	"github.com/navkul/dfs/p2p"
 )
 
-func OnPeer(p2p.Peer) error {
-	fmt.Println("executing logic outside TCPTransport")
-	return nil
-}
-
 func main() {
-	tcpOpts := p2p.TCPTransportOpts{
+	tcpTransportOpts := p2p.TCPTransportOpts{
 		ListenAddress: ":3000",
-		Decoder:       p2p.DefaultDecoder{},
 		HandshakeFunc: p2p.NOPHandshakeFunc,
-		OnPeer:        OnPeer,
+		Decoder:       p2p.DefaultDecoder{},
+		// TODO: onPeer func
 	}
-	tr := p2p.NewTCPTransport(tcpOpts)
+	tcpTransport := p2p.NewTCPTransport(tcpTransportOpts)
+
+	fileServerOpts := FileServerOpts{
+		StoreRoot:     "3000_network",
+		PathTransform: CASPathTransformFunc,
+		Transport:     tcpTransport,
+	}
+
+	s := NewFileServer(fileServerOpts)
 
 	go func() {
-		for {
-			msg := <-tr.Consume()
-			fmt.Printf("%+v\n", msg)
-		}
+		time.Sleep(1 * time.Second)
+		s.Stop()
 	}()
 
-	if err := tr.ListenAndAccept(); err != nil {
+	if err := s.Start(); err != nil {
 		log.Fatal(err)
 	}
-
-	select {}
 
 }
