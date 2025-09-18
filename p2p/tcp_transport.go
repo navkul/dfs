@@ -10,21 +10,27 @@ import (
 
 // TCPPeer represents the remote node over a TCP established connection
 type TCPPeer struct {
-	// conn is the underlying connection of the peer
-	conn net.Conn
+	// The underlying connection of the peer. In this case is a TCP connection
+	net.Conn
 
 	// if we dial and retrieve conn => outbound == true
 	// of we accept and retrieve conn => == false
 	outbound bool
-}
 
-// Close  implements the Peer interface
-func (p *TCPPeer) Close() error {
-	return p.conn.Close()
+	Wg *sync.WaitGroup
 }
 
 func NewTCPPeer(conn net.Conn, outbound bool) *TCPPeer {
-	return &TCPPeer{conn: conn, outbound: outbound}
+	return &TCPPeer{
+		Conn:     conn,
+		outbound: outbound,
+		Wg:       new(sync.WaitGroup),
+	}
+}
+
+func (p *TCPPeer) Send(b []byte) error {
+	_, err := p.Conn.Write(b)
+	return err
 }
 
 type TCPTransportOpts struct {
@@ -61,6 +67,18 @@ func (t *TCPTransport) Close() error {
 	return t.listener.Close()
 }
 
+// Dial implements the Transport interface
+func (t *TCPTransport) Dial(addr string) error {
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return err
+	}
+
+	go t.handleConnection(conn, true)
+
+	return nil
+}
+
 func (t *TCPTransport) ListenAndAccept() error {
 	var err error
 
@@ -86,13 +104,11 @@ func (t *TCPTransport) startAcceptLoop() {
 			fmt.Printf("TCP accept error: %s\n", err)
 		}
 
-		fmt.Printf("New incoming connection%+v\n", conn)
-
-		go t.handleConnection(conn)
+		go t.handleConnection(conn, false)
 	}
 }
 
-func (t *TCPTransport) handleConnection(conn net.Conn) {
+func (t *TCPTransport) handleConnection(conn net.Conn, outbound bool) {
 
 	var err error
 
@@ -101,7 +117,7 @@ func (t *TCPTransport) handleConnection(conn net.Conn) {
 		conn.Close()
 	}()
 
-	peer := NewTCPPeer(conn, true)
+	peer := NewTCPPeer(conn, outbound)
 
 	if err := t.HandshakeFunc(peer); err != nil {
 		return
@@ -121,8 +137,12 @@ func (t *TCPTransport) handleConnection(conn net.Conn) {
 			return
 		}
 
-		rpc.From = conn.RemoteAddr()
+		rpc.From = conn.RemoteAddr().String()
+		peer.Wg.Add(1)
+		fmt.Println("Waiting till stream is done")
 		t.rpchan <- rpc
+		peer.Wg.Wait()
+		fmt.Println("Stream is done, read loop continuing")
 	}
 
 }

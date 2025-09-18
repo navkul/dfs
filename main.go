@@ -1,36 +1,51 @@
 package main
 
 import (
+	"bytes"
 	"log"
 	"time"
 
 	"github.com/navkul/dfs/p2p"
 )
 
-func main() {
+func makeServer(listenAddress string, nodes ...string) *FileServer {
 	tcpTransportOpts := p2p.TCPTransportOpts{
-		ListenAddress: ":3000",
+		ListenAddress: listenAddress,
 		HandshakeFunc: p2p.NOPHandshakeFunc,
 		Decoder:       p2p.DefaultDecoder{},
-		// TODO: onPeer func
 	}
 	tcpTransport := p2p.NewTCPTransport(tcpTransportOpts)
 
 	fileServerOpts := FileServerOpts{
-		StoreRoot:     "3000_network",
-		PathTransform: CASPathTransformFunc,
-		Transport:     tcpTransport,
+		StoreRoot:      listenAddress + "_network",
+		PathTransform:  CASPathTransformFunc,
+		Transport:      tcpTransport,
+		BootStrapNodes: nodes,
 	}
 
 	s := NewFileServer(fileServerOpts)
 
+	tcpTransport.OnPeer = s.OnPeer
+
+	return s
+}
+
+func main() {
+	s1 := makeServer(":3000", "")
+	s2 := makeServer(":4000", ":3000")
+
 	go func() {
-		time.Sleep(1 * time.Second)
-		s.Stop()
+		log.Fatal(s1.Start())
 	}()
 
-	if err := s.Start(); err != nil {
-		log.Fatal(err)
-	}
+	time.Sleep(2 * time.Second)
+	go s2.Start()
+
+	time.Sleep(2 * time.Second)
+
+	data := bytes.NewReader([]byte("hello world"))
+	s2.StoreData("myprivatedata", data)
+
+	select {}
 
 }

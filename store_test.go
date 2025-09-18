@@ -40,7 +40,7 @@ func TestStore(t *testing.T) {
 		}
 
 		if ok := s.Has(key); !ok {
-			t.Errorf("store does not have key %s", key)
+			t.Errorf("store does not have Key %s", key)
 		}
 
 		b, _ := ioutil.ReadAll(r)
@@ -53,7 +53,7 @@ func TestStore(t *testing.T) {
 		}
 
 		if ok := s.Has(key); ok {
-			t.Errorf("expected to NOT have key %s", key)
+			t.Errorf("expected to NOT have Key %s", key)
 		}
 	}
 
