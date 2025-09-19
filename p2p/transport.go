@@ -13,6 +13,7 @@ type Peer interface {
 // between the nodes in the network. This can of the form
 // (TCP, UDP, websockets, ...)
 type Transport interface {
+	Addr() string
 	ListenAndAccept() error
 	Consume() <-chan RPC
 	Close() error

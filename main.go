@@ -39,12 +39,16 @@ func main() {
 	}()
 
 	time.Sleep(2 * time.Second)
+
 	go s2.Start()
 
 	time.Sleep(2 * time.Second)
 
-	data := bytes.NewReader([]byte("hello world"))
-	s2.StoreData("myprivatedata", data)
+	for i := 0; i < 10; i++ {
+		data := bytes.NewReader([]byte("hello world"))
+		s2.Store("myprivatedata", data)
+		time.Sleep(5 * time.Millisecond)
+	}
 
 	select {}
 
