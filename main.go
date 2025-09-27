@@ -34,39 +34,43 @@ func makeServer(listenAddress string, nodes ...string) *FileServer {
 }
 
 func main() {
+	// TODO: Implement auto peer discovery (i.e peer sends its peer list to node when first connecting)
 	s1 := makeServer(":3000", "")
 	s2 := makeServer(":4000", ":3000")
+	s3 := makeServer(":5000", ":3000", ":4000")
 
-	go func() {
-		log.Fatal(s1.Start())
-	}()
-
-	time.Sleep(2 * time.Second)
-
-	go s2.Start()
+	go func() { log.Fatal(s1.Start()) }()
+	time.Sleep(1 * time.Second)
+	go func() { log.Fatal(s2.Start()) }()
 
 	time.Sleep(2 * time.Second)
 
-	key := "coolPicture.jpg"
-	data := bytes.NewReader([]byte("hello world"))
-	s2.Store(key, data)
+	go s3.Start()
 
-	if err := s2.store.Delete(key); err != nil {
-		log.Fatal(err)
+	time.Sleep(2 * time.Second)
+
+	for i := 0; i < 20; i++ {
+		key := fmt.Sprintf("picture_%d.png", i)
+		data := bytes.NewReader([]byte("a big data file"))
+		s3.Store(key, data)
+
+		if err := s3.store.Delete(s3.ID, key); err != nil {
+			log.Fatal(err)
+		}
+
+		r, err := s3.Get(key)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		b, err := ioutil.ReadAll(r)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println(string(b))
 	}
 
-	r, err := s2.Get(key)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(string(b))
-	
 	// Exit the program after displaying the decrypted content
 	return
 }
