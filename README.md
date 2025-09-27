@@ -169,7 +169,7 @@ dfs/
 └── README.md           # This file
 ```
 
-**Important Note**: Some systems may have processes running on the default ports. If you encounter port conflicts:
+**Important Note**: Some systems may have processes running on the default ports. I spent a lot of time of doing nasty debugging just to figure out the issue was a 5000 port conflict for Mac, but thats part of the process.
 
 1. **Check for conflicts**:
    ```bash
