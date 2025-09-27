@@ -14,6 +14,7 @@ import (
 )
 
 type FileServerOpts struct {
+	EncKey         []byte
 	ListenAddress  string
 	StoreRoot      string
 	PathTransform  PathTransformFunc
@@ -108,12 +109,12 @@ func (s *FileServer) Get(key string) (io.Reader, error) {
 		var fileSize int64
 		binary.Read(peer, binary.LittleEndian, &fileSize)
 
-		n, err := s.store.Write(key, peer)
+		n, err := s.store.writeDecrypt(s.EncKey, key, io.LimitReader(peer, fileSize))
 		if err != nil {
 			return nil, err
 		}
 
-		fmt.Printf("[%s] received (%d) bytes  over the network from [%s]", s.Transport.Addr(), n, peer.RemoteAddr())
+		fmt.Printf("[%s] received (%d) bytes  over the network from [%s]\n", s.Transport.Addr(), n, peer.RemoteAddr())
 
 		peer.CloseStream()
 	}
@@ -151,10 +152,14 @@ func (s *FileServer) Store(key string, r io.Reader) error {
 	// TODO: use a multiwriter here
 	for _, peer := range s.peers {
 		peer.Send([]byte{p2p.IncomingStream})
-		n, err := io.Copy(peer, fileBuffer)
+		n, err := copyEncrypt(s.EncKey, fileBuffer, peer)
 		if err != nil {
 			return err
 		}
+		//n, err := io.Copy(peer, fileBuffer)
+		//if err != nil {
+		//	return err
+		//}
 		fmt.Println(n, "bytes received and written to disk")
 	}
 
@@ -233,14 +238,14 @@ func (s *FileServer) handleMessageGetFile(from string, msg MessageGetFile) error
 	// First send the IncomingStream byte to the peer, then send file size
 	// as an int64
 	peer.Send([]byte{p2p.IncomingStream})
-	binary.Write(peer, binary.BigEndian, fileSize)
+	binary.Write(peer, binary.LittleEndian, fileSize)
 
 	n, err := io.Copy(peer, r)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("[%s] written (%d) bytes over the network to %s ", s.Transport.Addr(), n, from)
+	fmt.Printf("[%s] written (%d) bytes over the network to %s\n", s.Transport.Addr(), n, from)
 	return nil
 }
 

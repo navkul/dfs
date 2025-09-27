@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -18,6 +19,7 @@ func makeServer(listenAddress string, nodes ...string) *FileServer {
 	tcpTransport := p2p.NewTCPTransport(tcpTransportOpts)
 
 	fileServerOpts := FileServerOpts{
+		EncKey:         newEncryptionKey(),
 		StoreRoot:      listenAddress + "_network",
 		PathTransform:  CASPathTransformFunc,
 		Transport:      tcpTransport,
@@ -45,11 +47,15 @@ func main() {
 
 	time.Sleep(2 * time.Second)
 
-	//data := bytes.NewReader([]byte("hello world"))
-	//s2.Store("coolPicture.jpg", data)
-	//time.Sleep(5 * time.Millisecond)
+	key := "coolPicture.jpg"
+	data := bytes.NewReader([]byte("hello world"))
+	s2.Store(key, data)
 
-	r, err := s2.Get("coolPicture.jpg")
+	if err := s2.store.Delete(key); err != nil {
+		log.Fatal(err)
+	}
+
+	r, err := s2.Get(key)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -60,5 +66,7 @@ func main() {
 	}
 
 	fmt.Println(string(b))
-
+	
+	// Exit the program after displaying the decrypted content
+	return
 }
