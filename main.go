@@ -36,11 +36,11 @@ func makeServer(listenAddress string, nodes ...string) *FileServer {
 func main() {
 	// TODO: Implement auto peer discovery (i.e peer sends its peer list to node when first connecting)
 	s1 := makeServer(":3000", "")
-	s2 := makeServer(":4000", ":3000")
-	s3 := makeServer(":5000", ":3000", ":4000")
+	s2 := makeServer(":4000", "")
+	s3 := makeServer(":5001", ":3000", ":4000")
 
 	go func() { log.Fatal(s1.Start()) }()
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 	go func() { log.Fatal(s2.Start()) }()
 
 	time.Sleep(2 * time.Second)
@@ -71,6 +71,4 @@ func main() {
 		fmt.Println(string(b))
 	}
 
-	// Exit the program after displaying the decrypted content
-	return
 }

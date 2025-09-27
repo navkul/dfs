@@ -120,7 +120,7 @@ func (s *Store) WriteDecrypt(encKey []byte, id string, key string, r io.Reader) 
 
 func (s *Store) openFileForWriting(id string, key string) (*os.File, error) {
 	pathKey := s.PathTransformFunc(key)
-	pathKeyWithRoot := fmt.Sprintf("%s/%s,%s", s.Root, id, pathKey.PathName)
+	pathKeyWithRoot := fmt.Sprintf("%s/%s/%s", s.Root, id, pathKey.PathName)
 	if err := os.MkdirAll(pathKeyWithRoot, os.ModePerm); err != nil {
 		return nil, err
 	}

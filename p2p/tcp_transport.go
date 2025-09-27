@@ -24,7 +24,7 @@ func NewTCPPeer(conn net.Conn, outbound bool) *TCPPeer {
 	return &TCPPeer{
 		Conn:     conn,
 		outbound: outbound,
-		wg:       new(sync.WaitGroup),
+		wg:       &sync.WaitGroup{},
 	}
 }
 
@@ -47,16 +47,13 @@ type TCPTransportOpts struct {
 type TCPTransport struct {
 	TCPTransportOpts
 	listener net.Listener
-	rpchan   chan RPC
-
-	mu    sync.RWMutex
-	peers map[net.Addr]Peer
+	rpChan   chan RPC
 }
 
 func NewTCPTransport(opts TCPTransportOpts) *TCPTransport {
 	return &TCPTransport{
 		TCPTransportOpts: opts,
-		rpchan:           make(chan RPC, 1024),
+		rpChan:           make(chan RPC, 1024),
 	}
 }
 
@@ -69,7 +66,7 @@ func (t *TCPTransport) Addr() string {
 // Consume implements the Transport interface which will return read-only channel
 // for reading the incoming messages received from another peer in the network
 func (t *TCPTransport) Consume() <-chan RPC {
-	return t.rpchan
+	return t.rpChan
 }
 
 // Close implements the Transport interface
@@ -129,12 +126,12 @@ func (t *TCPTransport) handleConnection(conn net.Conn, outbound bool) {
 
 	peer := NewTCPPeer(conn, outbound)
 
-	if err := t.HandshakeFunc(peer); err != nil {
+	if err = t.HandshakeFunc(peer); err != nil {
 		return
 	}
 
 	if t.OnPeer != nil {
-		if err := t.OnPeer(peer); err != nil {
+		if err = t.OnPeer(peer); err != nil {
 			return
 		}
 	}
@@ -142,7 +139,7 @@ func (t *TCPTransport) handleConnection(conn net.Conn, outbound bool) {
 	// Read loop
 	for {
 		rpc := RPC{}
-		err := t.Decoder.Decode(conn, &rpc)
+		err = t.Decoder.Decode(conn, &rpc)
 		if err != nil {
 			return
 		}
@@ -157,7 +154,7 @@ func (t *TCPTransport) handleConnection(conn net.Conn, outbound bool) {
 			continue
 		}
 
-		t.rpchan <- rpc
+		t.rpChan <- rpc
 
 	}
 

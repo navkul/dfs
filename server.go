@@ -39,7 +39,7 @@ func NewFileServer(opts FileServerOpts) *FileServer {
 		PathTransformFunc: opts.PathTransform,
 	}
 	if len(opts.ID) == 0 {
-		opts.ID = generateId()
+		opts.ID = generateID()
 	}
 	return &FileServer{
 		FileServerOpts: opts,
@@ -190,7 +190,7 @@ func (s *FileServer) loop() {
 			if err := gob.NewDecoder(bytes.NewReader(rpc.Payload)).Decode(&msg); err != nil {
 				log.Println("Decoding error:", err)
 			}
-			if err := s.handleMessage(&msg, rpc.From); err != nil {
+			if err := s.handleMessage(rpc.From, &msg); err != nil {
 				log.Println("Handle error:", err)
 			}
 
@@ -200,7 +200,7 @@ func (s *FileServer) loop() {
 	}
 }
 
-func (s *FileServer) handleMessage(msg *Message, from string) error {
+func (s *FileServer) handleMessage(from string, msg *Message) error {
 	switch v := msg.Payload.(type) {
 	case MessageStoreFile:
 

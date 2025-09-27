@@ -24,7 +24,7 @@ func TestPathTransformFunc(t *testing.T) {
 
 func TestStore(t *testing.T) {
 	s := newStore()
-	id := generateId()
+	id := generateID()
 	defer teardown(t, s)
 
 	for i := 0; i < 50; i++ {

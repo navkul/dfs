@@ -10,7 +10,7 @@ import (
 )
 
 // TODO: Use pubkey, and have every message signed with pubkey, store everything at pubkey location
-func generateId() string {
+func generateID() string {
 	b := make([]byte, 32)
 	io.ReadFull(rand.Reader, b)
 	return hex.EncodeToString(b)
